@@ -1,0 +1,7 @@
+*.pyc
+.vscode
+build
+output
+*.pth
+submodules/groundedsam
+ckpt
