@@ -1,0 +1,47 @@
+[workspace]
+authors = ["ian <ian.page38@gmail.com>"]
+channels = ["conda-forge"]
+name = "PlanarGS"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[system-requirements]
+cuda = "12.1"
+
+[tasks]
+install-submodules = "bash install_submodules.sh"
+
+[activation]
+env = { CUDA_HOME = "$CONDA_PREFIX" }
+
+[dependencies]
+python = "3.10.*"
+cmake = ">=3.20"
+# Core stack
+pytorch = "2.4.1"
+torchvision = "0.19.1"
+cuda-nvcc = "*"
+cuda-toolkit = "*"
+gxx = "11.*"
+gcc = "11.*"
+pip = "*"
+pytorch-gpu = ">=2.4.1,<3"
+pytorch3d = "*" # Use pre-built binary
+# Migrated from PyPI
+gradio = ">=5.0.0,<6" # Bumped to match conda availability or keep permissive
+matplotlib = ">=3.8,<4"
+opencv = ">=4.10,<5"
+scipy = ">=1.13,<2" 
+einops = ">=0.8,<0.9"
+trimesh = ">=4.0,<5"
+tensorboard = ">=2.17,<3"
+plyfile = ">=1.0,<2"
+open3d = ">=0.18.0,<0.19"
+lpips = ">=0.1.4,<0.2"
+transformers = ">=4.40,<5"
+yapf = ">=0.40,<1"
+pycocotools = ">=2.0,<3"
+timm = ">=1.0,<2"
+
+[pypi-dependencies]
+roma = ">=1.5.4, <2"
