@@ -9,9 +9,13 @@ version = "0.1.0"
 cuda = "12.1"
 
 [tasks]
-install-submodules = "bash install_submodules.sh"
-download-data = { cmd = "python download_data.py", depends_on = ["install-submodules"] }
-geomprior = { cmd = "python run_geomprior.py -s data/room0 --group_size 10 --ckpt_mv naver/DUSt3R_ViTLarge_BaseDecoder_512_dpt", depends_on = ["download-data"], env = { HF_HUB_ENABLE_HF_TRANSFER = "1" } }
+install-submodules = "bash pixi_scripts/install_submodules.sh"
+download-data = { cmd = "python pixi_scripts/download_data.py", depends-on = ["install-submodules"] }
+download-checkpoints = "python pixi_scripts/download_checkpoints.py"
+geomprior = { cmd = "python run_geomprior.py -s data/room0 --group_size 10 --ckpt_mv naver/DUSt3R_ViTLarge_BaseDecoder_512_dpt", depends-on = ["download-data"], env = { HF_HUB_ENABLE_HF_TRANSFER = "1" } }
+lp3 = { cmd = "python run_lp3.py -s data/room0 -t 'wall. floor. door. screen. window. ceiling. table'", depends-on = ["download-data", "download-checkpoints"] }
+train = { cmd = "python train.py -s data/room0 -m output/room0", depends-on = ["lp3"] }
+render = { cmd = "python render.py -m output/room0", depends-on = ["train"] }
 [activation]
 env = { CUDA_HOME = "$CONDA_PREFIX" }
 

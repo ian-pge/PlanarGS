@@ -1,45 +1,66 @@
 # PlanarGS: High-Fidelity Indoor 3D Gaussian Splatting Guided by Vision-Language Planar Priors
-Xirui Jin, Renbiao Jin, [Boying Li](https://leeby68.github.io), [Danping Zou](https://drone.sjtu.edu.cn/dpzou), Wenxian Yu
 
-### **NeurIPS 2025**
-### [Project Page](https://planargs.github.io/) | [arXiv](https://arxiv.org/abs/2510.23930)
-![Pipeline image](assets/pipeline.png)
+This repository contains the implementation of **PlanarGS**.
 
-PlanarGS combines planar priors from the LP3 pipeline and geometric priors from the pretrained multi-view foundation model with 3D Gaussian Splatting to achieve high-fidelity indoor surface reconstruction from multi-view images. We acheive up to **36.8%** and **43.4%** relative improvements in accuracy on the MuSHRoom and Replica datasets, respectively, with Chamfer distance below **5 cm**. The experiments require one RTX 3090 GPU and take approximately 1 hour to reconstruct a scene.
-## Todo List
-- [x] ~~Push main code and provide COLMAP-processed datasets.~~
-- [x] ~~Offer code for alignment and evaluation of reconstructed mesh.~~
-## Installation
+## Installation & Usage (Simplified with Pixi)
 
-```shell
-git clone https://github.com/SJTU-ViSYS-team/PlanarGS.git --recursive  
+This project is now managed with `pixi` for easy reproducibility.
+
+### 1. Install Pixi
+If you don't have pixi installed, run:
+```bash
+curl -fsSL https://pixi.sh/install.sh | bash
+```
+
+### 2. Setup & Download
+Run the following commands to install dependencies, download the dataset, and fetch necessary checkpoints.
+```bash
+# Clone the repository
+git clone --recursive https://github.com/YourUsername/PlanarGS.git
 cd PlanarGS
 
-conda create -n planargs python=3.10
-conda activate planargs
-pip install cmake==3.20.*
-
-pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu118  #replace your cuda version
-
-pip install -r requirements.txt 
+# Download Dataset (Replica/room0) and Checkpoints (GroundedSAM)
+pixi run download-data
+pixi run download-checkpoints
 ```
-Install submodules:
-``` shell
-pip install -e submodules/simple-knn --no-build-isolation 
-pip install -e submodules/pytorch3d --no-build-isolation   
-pip install submodules/diff-plane-rasterization --no-build-isolation   
-```
-### Installation of GroundedSAM
-We use the pre-trained vision-language foundational model [GroundedSAM](https://github.com/IDEA-Research/Grounded-Segment-Anything) in the Pipeline for Language-prompted planar priors (LP3). You can download and install it following:
-```shell
-cd submodules 
-git clone https://github.com/IDEA-Research/Grounded-Segment-Anything.git 
-mv Grounded-Segment-Anything groundedsam
 
-cd groundedsam && pip install -e segment_anything
-pip install --no-build-isolation -e GroundingDINO 
-&& cd ../..
+### 3. Run Pipeline
+The full pipeline can be executed step-by-step using pixi tasks.
+
+#### Step 1: Generate Geometric Priors (DUSt3R)
+This step uses DUSt3R to generate dense geometric priors (depth & normal maps).
+```bash
+pixi run geomprior
 ```
+*Note: This runs with `group_size=10` to fit on 24GB GPUs.*
+
+#### Step 2: Language-Prompted Planar Priors (LP3)
+This step uses GroundedSAM to identify planar regions (walls, floors, etc.) from text prompts.
+```bash
+pixi run lp3
+```
+
+#### Step 3: Training
+Train the PlanarGS model using the generated priors.
+```bash
+pixi run train
+```
+Output will be in `output/room0`.
+
+#### Step 4: Rendering & Mesh Extraction
+Render the final images and extract the mesh.
+```bash
+pixi run render
+```
+
+## Directory Structure
+- `data/`: Contains the dataset and generated priors.
+- `output/`: Contains the trained model and renders.
+- `pixi_scripts/`: Helper scripts for data download and setup.
+- `pixi.toml`: Configuration for the environment and tasks.
+
+## Acknowledgements
+This code is built on top of [Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting), [DUSt3R](https://github.com/naver/dust3r), and [Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything).
 - Please download checkpoints of GroundedSAM from [link1](https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
 ) and [link2](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth), and put them into the `ckpt` folder.
 ## Dataset Preprocess
