@@ -39,6 +39,7 @@ pixi run pipeline -s /workspace/mutagen/ultimate_frames -m output/mutagen -t "wa
 **Optional Arguments:**
 - `--image_size <int>`: Inference size for DUSt3R (default: 512).
 - `--group_size <int>`: Number of images per group for DUSt3R (default: 10).
+- `--batch_size <int>`: Batch size for DUSt3R inference (default: 8). Increase for better GPU utilization.
 - `--skip_geomprior`, `--skip_lp3`, `--skip_train`, `--skip_render`: Skip specific stages.
 
 ### 4. Run Individual Tasks (Advanced)
@@ -52,7 +53,7 @@ pixi run setup-mutagen
 
 #### Step 1: Geometric Priors (DUSt3R)
 ```bash
-pixi run geomprior -- -s <data_path> --group_size 10 --image_size 512
+pixi run geomprior -- -s <data_path> --group_size 10 --image_size 512 --batch_size 8
 ```
 
 #### Step 2: Language-Prompted Planar Priors (LP3)

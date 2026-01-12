@@ -9,7 +9,7 @@ def get_numeric_part(filename):
     return int(''.join(filter(str.isdigit, filename)))
 
 # Sampling-based grouping is used to ensure that each image group covers the entire scene.
-def GroupFiles(data_dir, output_dir, ckpt, group_size, vis, image_size):
+def GroupFiles(data_dir, output_dir, ckpt, group_size, vis, image_size, batch_size):
     files = sorted([f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))],
                    key=get_numeric_part)
 
@@ -24,12 +24,12 @@ def GroupFiles(data_dir, output_dir, ckpt, group_size, vis, image_size):
     for idx, group in enumerate(groups, 1):
         group_folder = os.path.join(output_dir, f"_group{idx}")
         os.makedirs(group_folder, exist_ok=True)
-        DUSt3R(data_dir, group_folder, ckpt, group, vis, image_size=image_size)  # Set vis=True to save the reconstructed dense point cloud from DUSt3R.
+        DUSt3R(data_dir, group_folder, ckpt, group, vis, image_size=image_size, batch_size=batch_size)  # Set vis=True to save the reconstructed dense point cloud from DUSt3R.
 
     print(f"Finish depth predicting.")
 
 
-def GeomPrior(model, prep, group_size, vis, skip_model, skip_align, image_size):
+def GeomPrior(model, prep, group_size, vis, skip_model, skip_align, image_size, batch_size):
     datapath = model.source_path
     ckpt = prep.ckpt_mv
     gp_data_path = os.path.join(datapath, "geomprior")
@@ -37,7 +37,7 @@ def GeomPrior(model, prep, group_size, vis, skip_model, skip_align, image_size):
     image_path = os.path.join(datapath, "images")
     # depth generation
     if not skip_model:
-        GroupFiles(image_path, gp_data_path, ckpt, group_size, vis, image_size)
+        GroupFiles(image_path, gp_data_path, ckpt, group_size, vis, image_size, batch_size)
     # depth align and resize
     if not skip_align:
         if os.path.exists(os.path.join(datapath, "sparse")):
@@ -57,6 +57,7 @@ if __name__ == '__main__':
     parser.add_argument("--skip_model", action="store_true")
     parser.add_argument("--skip_align", action="store_true")
     parser.add_argument("--image_size", type=int, default=512, help="Inference size for DUSt3R")
+    parser.add_argument("--batch_size", type=int, default=8, help="Batch size for DUSt3R inference")
     args = parser.parse_args()
 
-    GeomPrior(model.extract(args), prp.extract(args), int(args.group_size), args.vis, args.skip_model, args.skip_align, args.image_size)
+    GeomPrior(model.extract(args), prp.extract(args), int(args.group_size), args.vis, args.skip_model, args.skip_align, args.image_size, args.batch_size)

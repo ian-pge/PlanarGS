@@ -24,6 +24,7 @@ def main():
     parser.add_argument("--skip_render", action="store_true", help="Skip rendering step")
     parser.add_argument("--image_size", type=int, default=512, help="Inference size for DUSt3R (default: 512)")
     parser.add_argument("--group_size", type=int, default=10, help="Number of images per group (default: 10)")
+    parser.add_argument("--batch_size", type=int, default=8, help="Batch size for DUSt3R inference (default: 8)")
     
     # Catch-all for extra arguments to pass to train.py
     args, unknown_args = parser.parse_known_args()
@@ -96,7 +97,7 @@ def main():
         # Let's run everything from project root and pass absolute path to -s.
         
         ckpt_path = os.path.join(project_root, "ckpt", "DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth")
-        cmd = f"python run_geomprior.py -s {source_path} --group_size {args.group_size} --ckpt_mv {ckpt_path} --image_size {args.image_size}"
+        cmd = f"python run_geomprior.py -s {source_path} --group_size {args.group_size} --ckpt_mv {ckpt_path} --image_size {args.image_size} --batch_size {args.batch_size}"
         run_command(cmd, cwd=project_root, env=env)
 
     # 2. LP3 (Language-Guided Plane Priors)

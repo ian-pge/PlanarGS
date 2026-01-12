@@ -13,16 +13,59 @@ pl.ion()
 import sys
 sys.path.append(os.path.join(os.getcwd(), "submodules/dust3r"))
 
-from submodules.dust3r.dust3r.inference import inference
+from submodules.dust3r.dust3r.inference import inference as dust3r_inference
 from submodules.dust3r.dust3r.model import AsymmetricCroCo3DStereo
 from submodules.dust3r.dust3r.image_pairs import make_pairs
 from submodules.dust3r.dust3r.utils.image import load_images
 from submodules.dust3r.dust3r.utils.device import to_numpy
 from submodules.dust3r.dust3r.viz import add_scene_cam, CAM_COLORS, OPENGL, pts3d_to_trimesh, cat_meshes
 from submodules.dust3r.dust3r.cloud_opt import global_aligner, GlobalAlignerMode
+from submodules.dust3r.dust3r.utils.device import collate_with_cat, to_cpu
+from dust3r.inference import loss_of_one_batch
+from torch.utils.data import DataLoader, Dataset
+import tqdm
+
+class PairsDataset(Dataset):
+    def __init__(self, pairs):
+        self.pairs = pairs
+
+    def __len__(self):
+        return len(self.pairs)
+
+    def __getitem__(self, idx):
+        return self.pairs[idx]
+
+@torch.no_grad()
+def inference_with_dataloader(pairs, model, device, batch_size=8, num_workers=4, verbose=True):
+    if verbose:
+        print(f'>> Inference with model on {len(pairs)} image pairs (optimized with DataLoader, workers={num_workers})')
+    
+    # Check for consistent shapes
+    shapes1 = [img1['img'].shape[-2:] for img1, img2 in pairs]
+    shapes2 = [img2['img'].shape[-2:] for img1, img2 in pairs]
+    multiple_shapes = not (all(shapes1[0] == s for s in shapes1) and all(shapes2[0] == s for s in shapes2))
+    
+    if multiple_shapes:
+        batch_size = 1
+        print("Warning: Multiple image shapes detected, forcing batch_size=1")
+
+    dataset = PairsDataset(pairs)
+    # Use collate_with_cat as the collate_fn
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, 
+                            num_workers=num_workers, collate_fn=collate_with_cat, 
+                            pin_memory=True)
+
+    result = []
+    
+    for batch in tqdm.tqdm(dataloader, disable=not verbose):
+        # loss_of_one_batch moves data to device internally
+        res = loss_of_one_batch(batch, model, None, device)
+        result.append(to_cpu(res))
+
+    return collate_with_cat(result, lists=multiple_shapes)
 
 torch.backends.cuda.matmul.allow_tf32 = True  # for gpu >= Ampere and pytorch >= 1.12
-batch_size = 1
+torch.backends.cuda.matmul.allow_tf32 = True  # for gpu >= Ampere and pytorch >= 1.12
 
 def _convert_scene_output_to_glb(outdir, imgs, pts3d, mask, focals, cams2world, cam_size=0.05,
                                  cam_color=None, as_pointcloud=False,
@@ -93,7 +136,7 @@ def get_3D_model_from_scene(outdir, silent, scene, min_conf_thr=3, as_pointcloud
                                         transparent_cams=transparent_cams, cam_size=cam_size, silent=silent)
 
 
-def get_reconstructed_scene(output_folder, vis, outdir, model, device, silent, image_size, filelist, schedule, niter, min_conf_thr,
+def get_reconstructed_scene(output_folder, vis, outdir, model, device, silent, image_size, batch_size, filelist, schedule, niter, min_conf_thr,
                             as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size,
                             scenegraph_type, winsize, refid):
     """
@@ -110,7 +153,9 @@ def get_reconstructed_scene(output_folder, vis, outdir, model, device, silent, i
         scenegraph_type = scenegraph_type + "-" + str(refid)
 
     pairs = make_pairs(imgs, scene_graph=scenegraph_type, prefilter=None, symmetrize=True)
-    output = inference(pairs, model, device, batch_size=batch_size, verbose=not silent)
+    pairs = make_pairs(imgs, scene_graph=scenegraph_type, prefilter=None, symmetrize=True)
+    # Use optimized inference with DataLoader
+    output = inference_with_dataloader(pairs, model, device, batch_size=batch_size, num_workers=4, verbose=not silent)
 
     mode = GlobalAlignerMode.PointCloudOptimizer if len(imgs) > 2 else GlobalAlignerMode.PairViewer
     scene = global_aligner(output, device=device, mode=mode, verbose=not silent)
@@ -146,8 +191,8 @@ def get_reconstructed_scene(output_folder, vis, outdir, model, device, silent, i
     return scene, outfile, imgs
 
 
-def main_demo(tmpdirname, model, device, image_size, input_folder, output_folder, image_list, vis, silent):
-    recon_fun = functools.partial(get_reconstructed_scene, output_folder, vis, tmpdirname, model, device, silent, image_size)
+def main_demo(tmpdirname, model, device, image_size, batch_size, input_folder, output_folder, image_list, vis, silent):
+    recon_fun = functools.partial(get_reconstructed_scene, output_folder, vis, tmpdirname, model, device, silent, image_size, batch_size)
     
     # List all files in the input folder
     if image_list is None:
@@ -183,7 +228,7 @@ def main_demo(tmpdirname, model, device, image_size, input_folder, output_folder
     print(f"3D model saved to: {outfile}")
 
 
-def DUSt3R(input_folder, output_folder, weights_path, image_list=None, vis=False, device='cuda', image_size=512, silent=False):
+def DUSt3R(input_folder, output_folder, weights_path, image_list=None, vis=False, device='cuda', image_size=512, batch_size=8, silent=False):
     # Hardcoded input folder
     tmp_path = './submodules/dust3r/tmp'
     os.makedirs(tmp_path, exist_ok=True)
@@ -196,4 +241,4 @@ def DUSt3R(input_folder, output_folder, weights_path, image_list=None, vis=False
             print('Outputing stuff in', tmpdirname)
         
         # Run the main demo with input folder specified
-        main_demo(tmpdirname, model, device, image_size, input_folder, output_folder, image_list, vis, silent)
+        main_demo(tmpdirname, model, device, image_size, batch_size, input_folder, output_folder, image_list, vis, silent)
