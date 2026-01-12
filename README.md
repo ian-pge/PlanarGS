@@ -23,34 +23,51 @@ cd PlanarGS
 pixi run download-data
 pixi run download-checkpoints
 ```
+*Note: Custom CUDA extensions (`simple-knn`, `diff-plane-rasterization`, `RoPE2D`) are compiled via `pixi run install-submodules` (automatically triggered by `download-data`).*
 
-### 3. Run Pipeline
-The full pipeline can be executed step-by-step using pixi tasks.
+### 3. Run Pipeline (Recommended)
+The easiest way to run the entire pipeline is using the unified `pipeline` task. This handles everything from geometric priors to rendering, including automatic symlinking for Mutagen-style datasets.
 
-#### Step 1: Generate Geometric Priors (DUSt3R)
-This step uses DUSt3R to generate dense geometric priors (depth & normal maps).
 ```bash
-pixi run geomprior
+# General Usage
+pixi run pipeline -s <path/to/dataset> -t "<text prompts>"
+
+# Example (Mutagen)
+pixi run pipeline -s /workspace/mutagen/ultimate_frames -m output/mutagen -t "wall. floor. door. screen. window. ceiling. table"
 ```
-*Note: This runs with `group_size=10` to fit on 24GB GPUs.*
+
+**Optional Arguments:**
+- `--image_size <int>`: Inference size for DUSt3R (default: 512).
+- `--group_size <int>`: Number of images per group for DUSt3R (default: 10).
+- `--skip_geomprior`, `--skip_lp3`, `--skip_train`, `--skip_render`: Skip specific stages.
+
+### 4. Run Individual Tasks (Advanced)
+You can run individual stages manually by passing arguments after `--`.
+
+#### Setup for Mutagen
+If using the Mutagen dataset, run this helper first to link the sparse model:
+```bash
+pixi run setup-mutagen
+```
+
+#### Step 1: Geometric Priors (DUSt3R)
+```bash
+pixi run geomprior -- -s <data_path> --group_size 10 --image_size 512
+```
 
 #### Step 2: Language-Prompted Planar Priors (LP3)
-This step uses GroundedSAM to identify planar regions (walls, floors, etc.) from text prompts.
 ```bash
-pixi run lp3
+pixi run lp3 -- -s <data_path> -t "wall. floor. window."
 ```
 
 #### Step 3: Training
-Train the PlanarGS model using the generated priors.
 ```bash
-pixi run train
+pixi run train -- -s <data_path> -m <output_path>
 ```
-Output will be in `output/room0`.
 
-#### Step 4: Rendering & Mesh Extraction
-Render the final images and extract the mesh.
+#### Step 4: Rendering
 ```bash
-pixi run render
+pixi run render -- -m <output_path>
 ```
 
 ## Directory Structure

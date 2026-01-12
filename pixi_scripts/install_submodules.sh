@@ -24,6 +24,12 @@ else
     pip install submodules/diff-plane-rasterization --no-build-isolation
 fi
 
+# Install RoPE2D for DUSt3R
+echo "Installing RoPE2D..."
+cd submodules/dust3r/croco/models/curope
+python setup.py build_ext --inplace
+cd ../../../../..
+
 # GroundedSAM
 if [ ! -d "submodules/groundedsam" ]; then
     echo "Cloning GroundedSAM..."
