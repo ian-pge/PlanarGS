@@ -15,7 +15,7 @@ download-checkpoints = "python pixi_scripts/download_checkpoints.py"
 post-install = { cmd = "echo 'Post-install setup complete!'", depends-on = ["install-submodules", "download-data", "download-checkpoints"] }
 
 # General tasks
-train = { cmd = "python pixi_scripts/run_pipeline.py", depends-on = ["post-install"] }
+train = { cmd = "python pixi_scripts/run_pipeline.py"}
 
 [activation]
 env = { CUDA_HOME = "$CONDA_PREFIX" }
@@ -37,7 +37,7 @@ pytorch3d = "*" # Use pre-built binary
 gradio = ">=5.0.0,<6" # Bumped to match conda availability or keep permissive
 matplotlib = ">=3.8,<4"
 opencv = ">=4.10,<5"
-scipy = ">=1.13,<2" 
+scipy = ">=1.13,<2"
 einops = ">=0.8,<0.9"
 trimesh = ">=4.0,<5"
 tensorboard = ">=2.17,<3"
@@ -53,5 +53,3 @@ git-lfs = "*"
 [pypi-dependencies]
 roma = ">=1.5.4, <2"
 hf_transfer = "*"
-
-
