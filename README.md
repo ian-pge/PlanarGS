@@ -33,13 +33,12 @@ This repository contains the implementation of **PlanarGS**.
  pixi run train -- -s <data_path> -t "<text prompts>"
  ```
  
- **Example (Mutagen):**
+ **Example:**
  ```bash
- pixi run train -- -s /workspace/mutagen/ultimate_frames -t "wall. floor. door. screen. window. ceiling. table"
+ pixi run train -s /workspace/mutagen/ultimate_frames -t "wall. floor. door. screen. window. ceiling. table"
  ```
  
  #### Available Parameters
- Pass these arguments after the `--` separator:
  
  | Argument | Flag | Description | Default |
  | :--- | :--- | :--- | :--- |
@@ -54,8 +53,6 @@ This repository contains the implementation of **PlanarGS**.
  | **Skip Train** | `--skip_train` | Skip the training step. | `False` |
  | **Skip Render** | `--skip_render` | Skip the rendering step. | `False` |
  
- **Note on Mutagen Dataset:**
- If using the Mutagen dataset schema, the pipeline automatically detects and links `sfm_colmap/sparse/0` to `sparse` if needed.
 
 ## Directory Structure
 - `data/`: Contains the dataset and generated priors.
