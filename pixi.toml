@@ -10,15 +10,13 @@ cuda = "12.1"
 
 [tasks]
 install-submodules = "bash pixi_scripts/install_submodules.sh"
-download-data = { cmd = "python pixi_scripts/download_data.py", depends-on = ["install-submodules"] }
+download-data = "python pixi_scripts/download_data.py"
 download-checkpoints = "python pixi_scripts/download_checkpoints.py"
-# Generic tasks - pass arguments via --, e.g. 'pixi run geomprior -- -s /path/to/data'
-geomprior = { cmd = "python run_geomprior.py", depends-on = ["download-checkpoints"], env = { HF_HUB_ENABLE_HF_TRANSFER = "1" } }
-lp3 = { cmd = "python run_lp3.py" }
-train = { cmd = "python train.py" }
-render = { cmd = "python render.py" }
-pipeline = { cmd = "python pixi_scripts/run_pipeline.py", depends-on = ["download-checkpoints"] }
-setup-mutagen = { cmd = "ln -sf sfm_colmap/sparse/0 sparse" }
+post-install = { cmd = "echo 'Post-install setup complete!'", depends-on = ["install-submodules", "download-data", "download-checkpoints"] }
+
+# General tasks
+train = { cmd = "python pixi_scripts/run_pipeline.py", depends-on = ["post-install"] }
+
 [activation]
 env = { CUDA_HOME = "$CONDA_PREFIX" }
 

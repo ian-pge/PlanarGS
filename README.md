@@ -3,73 +3,59 @@
 This repository contains the implementation of **PlanarGS**.
 
 ## Installation & Usage (Simplified with Pixi)
-
-This project is now managed with `pixi` for easy reproducibility.
-
-### 1. Install Pixi
-If you don't have pixi installed, run:
-```bash
-curl -fsSL https://pixi.sh/install.sh | bash
-```
-
-### 2. Setup & Download
-Run the following commands to install dependencies, download the dataset, and fetch necessary checkpoints.
-```bash
-# Clone the repository
-git clone --recursive https://github.com/YourUsername/PlanarGS.git
-cd PlanarGS
-
-# Download Dataset (Replica/room0) and Checkpoints (GroundedSAM)
-pixi run download-data
-pixi run download-checkpoints
-```
-*Note: Custom CUDA extensions (`simple-knn`, `diff-plane-rasterization`, `RoPE2D`) are compiled via `pixi run install-submodules` (automatically triggered by `download-data`).*
-
-### 3. Run Pipeline (Recommended)
-The easiest way to run the entire pipeline is using the unified `pipeline` task. This handles everything from geometric priors to rendering, including automatic symlinking for Mutagen-style datasets.
-
-```bash
-# General Usage
-pixi run pipeline -s <path/to/dataset> -t "<text prompts>"
-
-# Example (Mutagen)
-pixi run pipeline -s /workspace/mutagen/ultimate_frames -m output/mutagen -t "wall. floor. door. screen. window. ceiling. table"
-```
-
-**Optional Arguments:**
-- `--image_size <int>`: Inference size for DUSt3R (default: 512).
-- `--group_size <int>`: Number of images per group for DUSt3R (default: 10).
-- `--batch_size <int>`: Batch size for DUSt3R inference (default: 8). Increase for better GPU utilization.
-- `--skip_geomprior`, `--skip_lp3`, `--skip_train`, `--skip_render`: Skip specific stages.
-
-### 4. Run Individual Tasks (Advanced)
-You can run individual stages manually by passing arguments after `--`.
-
-#### Setup for Mutagen
-If using the Mutagen dataset, run this helper first to link the sparse model:
-```bash
-pixi run setup-mutagen
-```
-
-#### Step 1: Geometric Priors (DUSt3R)
-```bash
-pixi run geomprior -- -s <data_path> --group_size 10 --image_size 512 --batch_size 8
-```
-
-#### Step 2: Language-Prompted Planar Priors (LP3)
-```bash
-pixi run lp3 -- -s <data_path> -t "wall. floor. window."
-```
-
-#### Step 3: Training
-```bash
-pixi run train -- -s <data_path> -m <output_path>
-```
-
-#### Step 4: Rendering
-```bash
-pixi run render -- -m <output_path>
-```
+ 
+ This project is now managed with `pixi` for easy reproducibility.
+ 
+ ### 1. Install Pixi
+ If you don't have pixi installed, run:
+ ```bash
+ curl -fsSL https://pixi.sh/install.sh | bash
+ ```
+ 
+ ### 2. Setup (Post-Install)
+ Run the single `post-install` task to handle everything: install dependencies, compile custom CUDA submodules (`simple-knn`, `diff-plane-rasterization`, etc.), download the dataset (Replica/room0), and fetch necessary checkpoints (GroundedSAM, DUSt3R).
+ 
+ ```bash
+ git clone --recursive https://github.com/YourUsername/PlanarGS.git
+ cd PlanarGS
+ pixi run post-install
+ ```
+ 
+ ### 3. Train (Full Pipeline)
+ The `train` task runs the entire PlanarGS pipeline, including:
+ 1.  **Geometric Priors**: Generates priors using DUSt3R.
+ 2.  **LP3**: Generates language-guided planar priors.
+ 3.  **Training**: Trains the Gaussian Splatting model.
+ 4.  **Rendering**: Renders the final output.
+ 
+ **Basic Command:**
+ ```bash
+ pixi run train -- -s <data_path> -t "<text prompts>"
+ ```
+ 
+ **Example (Mutagen):**
+ ```bash
+ pixi run train -- -s /workspace/mutagen/ultimate_frames -t "wall. floor. door. screen. window. ceiling. table"
+ ```
+ 
+ #### Available Parameters
+ Pass these arguments after the `--` separator:
+ 
+ | Argument | Flag | Description | Default |
+ | :--- | :--- | :--- | :--- |
+ | **Source Path** | `-s`, `--source_path` | **(Required)** Path to the dataset directory. | - |
+ | **Text Prompts** | `-t`, `--text_prompts` | **(Required)** Text prompts for LP3 (e.g., "wall. floor."). | - |
+ | **Model Path** | `-m`, `--model_path` | Output path for the model. | `output/<dataset_name>` |
+ | **Image Size** | `--image_size` | Inference size for DUSt3R. | `512` |
+ | **Group Size** | `--group_size` | Images per group for DUSt3R. | `10` |
+ | **Batch Size** | `--batch_size` | Batch size for DUSt3R inference. | `8` |
+ | **Skip Geomprior** | `--skip_geomprior` | Skip the geometric prior generation step. | `False` |
+ | **Skip LP3** | `--skip_lp3` | Skip the LP3 step. | `False` |
+ | **Skip Train** | `--skip_train` | Skip the training step. | `False` |
+ | **Skip Render** | `--skip_render` | Skip the rendering step. | `False` |
+ 
+ **Note on Mutagen Dataset:**
+ If using the Mutagen dataset schema, the pipeline automatically detects and links `sfm_colmap/sparse/0` to `sparse` if needed.
 
 ## Directory Structure
 - `data/`: Contains the dataset and generated priors.
